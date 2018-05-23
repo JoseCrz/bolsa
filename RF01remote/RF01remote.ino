@@ -17,9 +17,8 @@
 #define  R     0
 // SETUP ============================================
 #define MainPeriod 2000
-#define MainPeriod2 2000
+#define MainPeriod2 1500
 #define Watsdog 4500
-
 #define speakerOut 3 // Set up speaker on a PWM pin (digital 3... )
 int DEBUG = 1; // Do we want debugging on serial out? 1 for yes, 0 for no
 #define ButtonEnable A2 // Set up sicro button V source on  pin A2 (Analog 2)
@@ -29,25 +28,26 @@ int DEBUG = 1; // Do we want debugging on serial out? 1 for yes, 0 for no
 #define RFHC11 Serial1
 #define RFctrl A3
 int RXLED = 17;
-String ID = "rf02";
+String ID = "rf00";
 boolean emparejado = 0;
 void setup() {
-	pinMode(RFctrl, OUTPUT);
-	digitalWrite(RFctrl, HIGH);
-	pinMode(speakerOut, OUTPUT);
-	pinMode(Button, INPUT);
-	pinMode(ButtonEnable, OUTPUT);
-	digitalWrite(ButtonEnable, HIGH);
-	pinMode(RXLED, OUTPUT);  // Set RX LED as an output
-	pinMode(Motor, OUTPUT);
-	if (DEBUG) { UsbDebug.begin(9600); }
-	RFHC11.begin(9600);
-	int extract = EEPROM.read(0); //por ser id2
-	if (extract == 1) {
-		emparejado = 1;
-	}	else {
-		emparejado = 0;
-	}
+  pinMode(RFctrl, OUTPUT);
+  digitalWrite(RFctrl, HIGH);
+  pinMode(speakerOut, OUTPUT);
+  digitalWrite(speakerOut, HIGH);
+  pinMode(Button, INPUT);
+  pinMode(ButtonEnable, OUTPUT);
+  digitalWrite(ButtonEnable, HIGH);
+  pinMode(RXLED, OUTPUT);  // Set RX LED as an output
+  pinMode(Motor, OUTPUT);
+  if (DEBUG) { UsbDebug.begin(9600); }
+  RFHC11.begin(9600);
+  int extract = EEPROM.read(0); //por ser id2
+  if (extract == 1) {
+    emparejado = 1;
+  } else {
+    emparejado = 0;
+  }
 }
 
 // MELODY and TIMING  =======================================
@@ -87,36 +87,36 @@ void loop() {
   if (emparejado) { timmer3(); }
   if (alert) { Alarma(); }
   if(!digitalRead(Button)){
-	  if (alert) {
-		  alert = 0;
-		  delay(500);
-	  }
-	  else {
-		  //motorvib(350);
-		  meloda();
-		  UsbDebug.println("Transmitiendo...");
-		  RFHC11.print("syncID");
-		  RFHC11.println(ID);
-	  }
+    if (alert) {
+      alert = 0;
+      delay(200);
+    }
+    else {
+      //motorvib(350);
+      meloda();
+      UsbDebug.println("Transmitiendo...");
+      RFHC11.print("syncID");
+      RFHC11.println(ID);
+    }
   
   }
 
   
   while(RFHC11.available() > 0){ // Si hay datos por modulo RF   
     char inChar = RFHC11.read();
-	//UsbDebug.println(inChar);
+  //UsbDebug.println(inChar);
     inString += (char)inChar;
     if (inChar == '\n') {
       UsbDebug.println(inString);
       // clear the string for new input:
-	  stringcomplete = 1;
-	  while (RFHC11.read() > -1);
+    stringcomplete = 1;
+    while (RFHC11.read() > -1);
     }
   }
-  if (stringcomplete) {	
-	  parser(inString);
-	  stringcomplete = 0;
-	  inString = "";
+  if (stringcomplete) { 
+    parser(inString);
+    stringcomplete = 0;
+    inString = "";
   }
 }
 // ============================= end MAIN =============================
@@ -180,54 +180,54 @@ void timmer1() {
   }//end funcion1    
 }
 void timmer2() {
-	unsigned long currentMillis = millis();
-	if (currentMillis - previousMillis2 >= MainPeriod2) { //Uptade every X miliseconds, this will be equal to reading frecuency (Hz).
-		previousMillis2 = currentMillis;
-		UsbDebug.print("val emparejado...");
-		UsbDebug.println(emparejado);
-		if (emparejado) {
-			UsbDebug.println("Transmitiendo...");
-			RFHC11.print("ID");
-			RFHC11.println(ID);
-		}
-	
-	}
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis2 >= MainPeriod2) { //Uptade every X miliseconds, this will be equal to reading frecuency (Hz).
+    previousMillis2 = currentMillis;
+    UsbDebug.print("val emparejado...");
+    UsbDebug.println(emparejado);
+    if (emparejado) {
+      UsbDebug.println("Transmitiendo...");
+      RFHC11.print("ID");
+      RFHC11.println(ID);
+    }
+  
+  }
 }
 
 void parser(String received) {
-	if (received.startsWith("s"))
-	{
-		emparejado = 1;
-		UsbDebug.println("Emparejado");
-		EEPROM.update(0, 1);
-	}
-	if (received.startsWith("b"))
-	{
-		emparejado = 0;
-		UsbDebug.println("Desemparejado");
-		EEPROM.update(0, 0);
-	}
-	if (received.startsWith("p")) {
-		previousMillis3 = millis();
-		UsbDebug.println("reinicio Base ping");
-	}
+  if (received.startsWith("s"))
+  {
+    emparejado = 1;
+    UsbDebug.println("Emparejado");
+    EEPROM.update(0, 1);
+  }
+  if (received.startsWith("b"))
+  {
+    emparejado = 0;
+    UsbDebug.println("Desemparejado");
+    EEPROM.update(0, 0);
+  }
+  if (received.startsWith("p")) {
+    previousMillis3 = millis();
+    UsbDebug.println("reinicio Base ping");
+  }
 }
 
 
 void timmer3() {
-	unsigned long currentMillis = millis();
-	if (currentMillis - previousMillis3 >= Watsdog) { //Uptade every X miliseconds, this will be equal to reading frecuency (Hz).
-		previousMillis3 = currentMillis;
-		UsbDebug.println("Tiempo vencido Base");
-		alert = 1;
-		previousMillis3 = millis();
-	}
+  unsigned long currentMillis = millis();
+  if (currentMillis - previousMillis3 >= Watsdog) { //Uptade every X miliseconds, this will be equal to reading frecuency (Hz).
+    previousMillis3 = currentMillis;
+    UsbDebug.println("Tiempo vencido Base");
+    alert = 1;
+    previousMillis3 = millis();
+  }
 }
 
 
 void Alarma() {
-	//while (digitalRead(Button)) {
-		meloda();
-	//}
-	
+  //while (digitalRead(Button)) {
+    meloda();
+  //}
+  
 }
